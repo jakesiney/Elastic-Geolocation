@@ -4,10 +4,19 @@ import json
 import os
 import sys
 from dotenv import load_dotenv
+from elasticsearch import Elasticsearch
+
+
 
 load_dotenv()
-
+elastic_cloud_id = os.getenv('ELASTIC_CLOUD_ID')
+elastic_password = os.getenv('ELASTIC_PASSWORD')
 API_KEY = os.getenv('google_maps_api_key')
+
+es = Elasticsearch(
+    cloud_id=elastic_cloud_id,
+    basic_auth=('elastic', elastic_password)
+)
 
 def geocode(address):
     try:
@@ -39,23 +48,26 @@ def geocode(address):
 def process_csv(filename):
     with open(filename, 'r') as file:
         reader = csv.DictReader(file)
-        with open('geolocation.json', 'w') as outfile:
-            for row in reader:
-                address_parts = [row['Line 1'], row['Line 2'], row['Line 3'], row['Line 4'], row['Post Code']]
-                address = ', '.join(part for part in address_parts if part)
-                lat, lon = geocode(address)
-                if lat and lon:
-                    data = {
-                        'client_name': row['Client Name'],
-                        'site_name': row['Site Name'],
-                        'location': {
-                            'lat': lat,
-                            'lon': lon
-                        }
+        for row in reader:
+            address_parts = [row['Line 1'], row['Line 2'], row['Line 3'], row['Line 4'], row['Post Code']]
+            address = ', '.join(part for part in address_parts if part)
+            lat, lon = geocode(address)
+            if lat and lon:
+                data = {
+                    'client_name': row['Client Name'],
+                    'site_name': row['Site Name'],
+                    'location': {
+                        'lat': lat,
+                        'lon': lon
                     }
-                    json.dump(data, outfile)
-                    outfile.write('\n')
-    print('Done!')
+                }
+                try:
+                    response = es.index(index='halo-customer-geolocation', body=data)
+                    print(f'Document: {data}')
+                    print(f'Elasticsearch ID: {response["_id"]}')
+                except Exception as e:
+                    print(f"Error indexing document: {e}")
+
 
 if __name__ == '__main__':
-    process_csv(sys.argv[1])
+    process_csv('sites.csv')
