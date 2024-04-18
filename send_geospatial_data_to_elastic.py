@@ -56,13 +56,15 @@ def process_csv(filename):
                 data = {
                     'client_name': row['Client Name'],
                     'site_name': row['Site Name'],
+                    'client_id': row['client_id'],
+                    'site_id': row['site_id'],
                     'location': {
                         'lat': lat,
                         'lon': lon
                     }
                 }
                 try:
-                    response = es.index(index='halo-customer-geolocation', body=data)
+                    response = es.update(index='halo-customer-geolocation', id=row['site_id'], body={"doc": data}, doc_as_upsert=True)
                     print(f'Document: {data}')
                     print(f'Elasticsearch ID: {response["_id"]}')
                 except Exception as e:
@@ -70,4 +72,4 @@ def process_csv(filename):
 
 
 if __name__ == '__main__':
-    process_csv('sites.csv')
+    process_csv('ENTER_YOUR_CSV_FILE.csv')

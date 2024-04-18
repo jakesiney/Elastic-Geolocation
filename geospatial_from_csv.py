@@ -48,6 +48,8 @@ def process_csv(filename):
                     data = {
                         'client_name': row['Client Name'],
                         'site_name': row['Site Name'],
+                        'client_id': row['client_id'],
+                        'site_id': row['site_id'],
                         'location': {
                             'lat': lat,
                             'lon': lon
